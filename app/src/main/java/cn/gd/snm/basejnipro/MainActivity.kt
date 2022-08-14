@@ -35,7 +35,7 @@ class MainActivity : AppCompatActivity() {
 //        testJavaToJniObject()
 
         //todo 测试jni层其它
-        testJniOther()
+//        testJniOther()
 
     }
 
