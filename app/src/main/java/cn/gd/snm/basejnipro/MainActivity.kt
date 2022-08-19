@@ -37,8 +37,16 @@ class MainActivity : AppCompatActivity() {
         //todo 测试jni层其它
 //        testJniOther()
 
+        //todo 测试获取ffmpag so库版本号
+        testGetFFmpegVerson()
+
     }
 
+    private fun testGetFFmpegVerson() {
+        printfFFmpegVersonFromJni()
+    }
+
+    external fun printfFFmpegVersonFromJni()
 
 
     //todo 测试Jni回调java并传参

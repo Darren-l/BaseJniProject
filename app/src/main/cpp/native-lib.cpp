@@ -11,6 +11,12 @@
 #include "CPlusDemo.h"
 
 
+extern "C" {
+    #include "include/libavutil/avutil.h"
+}
+
+
+
 /**
  * extern "C"： 使用C的环境。
  *
@@ -268,3 +274,10 @@ Java_cn_gd_snm_basejnipro_MainActivity_testJniOther(JNIEnv *env,
 }
 
 
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_gd_snm_basejnipro_MainActivity_printfFFmpegVersonFromJni(JNIEnv *env, jobject thiz) {
+    unsigned  int verson = avutil_version();
+    LOGD("printfFFmpegVersonFromJni ver=%d \n",  verson);
+}
