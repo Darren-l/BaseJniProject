@@ -6,7 +6,7 @@ import android.util.Log
 import cn.gd.snm.basejnipro.databinding.ActivityMainBinding
 
 /**
- * DarrenTest：测试java与jni层调用交互。
+ * DarrenTest：测试静态注册及第三方so库调用。
  *
  */
 class MainActivity : AppCompatActivity() {

@@ -12,10 +12,8 @@
 
 
 extern "C" {
-    #include "include/libavutil/avutil.h"
+#include "include/libavutil/avutil.h"
 }
-
-
 
 /**
  * extern "C"： 使用C的环境。
@@ -25,7 +23,7 @@ extern "C" {
  */
 extern "C" JNIEXPORT jstring JNICALL
 Java_cn_gd_snm_basejnipro_MainActivity_stringFromJNI(
-        JNIEnv* env,
+        JNIEnv *env,
         jobject /* this */) {
     std::string hello = "DarrentTest...";
     return env->NewStringUTF(hello.c_str());
@@ -50,28 +48,28 @@ extern "C"
 JNIEXPORT void JNICALL
 Java_cn_gd_snm_basejnipro_MainActivity_sendBaseDataToJni(JNIEnv *env, jobject thiz,
                                                          jint i,
-                                                        jshort sh, jfloat fl, jdouble dou,
-                                                        jboolean bo, jstring str) {
+                                                         jshort sh, jfloat fl, jdouble dou,
+                                                         jboolean bo, jstring str) {
     LOGD("sendIntDataToJni...");
     //todo 基础类型可以直接接收使用。
     jint ji = i;
     jshort js = sh;
-    jfloat  jf = fl;
+    jfloat jf = fl;
     jdouble jd = dou;
 
-    LOGD("输出基础类型，ji=%d , js=%d , jf=%f, jd=%lf \n",ji, js, jf,jd);
+    LOGD("输出基础类型，ji=%d , js=%d , jf=%f, jd=%lf \n", ji, js, jf, jd);
 
     //todo boolean类型在jni层是unsigned char,但是也不能直接输出...
 //    LOGD("输出jboolean类型：bo=%s \n",bo);     //输出会报错。
-    if(bo == JNI_TRUE){     //但可以使用jni封装的变量进行判断。
+    if (bo == JNI_TRUE) {     //但可以使用jni封装的变量进行判断。
         LOGD("jboolean 的值为true... \n");
     }
 
     //todo 针对非基础类型，需要就借助env。返回值是const char*，但可以使用const_cast转化为普通指针。
-    const char* strC = env->GetStringUTFChars(str,NULL);
-    char* strC2 = const_cast<char *>(env->GetStringUTFChars(str, NULL));
-    strcpy(strC2,"jniModify..");
-    LOGD("输出str类型：str=%s ,str2=%s",strC,strC2);
+    const char *strC = env->GetStringUTFChars(str, NULL);
+    char *strC2 = const_cast<char *>(env->GetStringUTFChars(str, NULL));
+    strcpy(strC2, "jniModify..");
+    LOGD("输出str类型：str=%s ,str2=%s", strC, strC2);
 
 }
 
@@ -123,30 +121,30 @@ Java_cn_gd_snm_basejnipro_MainActivity_sendObjectDataToJni(JNIEnv *env,
      */
     //TODO: 测试获取对象的成员
     jclass jp1 = env->GetObjectClass(person);
-    jfieldID jfid1 = env->GetFieldID(jp1,"name","Ljava/lang/String;");
-    jstring js1 =(jstring) env->GetObjectField(person,jfid1);
-    const char* javaName = env->GetStringUTFChars(js1,NULL);
-    LOGD("person filed name=%s \n",javaName);
+    jfieldID jfid1 = env->GetFieldID(jp1, "name", "Ljava/lang/String;");
+    jstring js1 = (jstring) env->GetObjectField(person, jfid1);
+    const char *javaName = env->GetStringUTFChars(js1, NULL);
+    LOGD("person filed name=%s \n", javaName);
 
 
     LOGD("####################  \n");
 
     //TODO: 测试获取对象的静态成员 -- java静态
     jclass jp11 = env->GetObjectClass(person);
-    jfieldID  jd11 = env->GetStaticFieldID(jp11,"staticNameJava", "Ljava/lang/String;");
-    jstring js11 = (jstring)env->GetStaticObjectField(jp11,jd11);
-    const char* javaStaticName = env->GetStringUTFChars(js11,NULL);
-    LOGD("person static java filed=%s \n",javaStaticName);
+    jfieldID jd11 = env->GetStaticFieldID(jp11, "staticNameJava", "Ljava/lang/String;");
+    jstring js11 = (jstring) env->GetStaticObjectField(jp11, jd11);
+    const char *javaStaticName = env->GetStringUTFChars(js11, NULL);
+    LOGD("person static java filed=%s \n", javaStaticName);
 
     LOGD("####################  \n");
 
 
     //TODO：测试获取Kotlin companion成员 -- 与java调用静态一样。
     jclass jp12 = env->GetObjectClass(person);
-    jfieldID  jd12 = env->GetStaticFieldID(jp12,"staticNameKt", "Ljava/lang/String;");
-    jstring js12 = (jstring)env->GetStaticObjectField(jp12,jd12);
-    const char* javaStaticName2 = env->GetStringUTFChars(js12,NULL);
-    LOGD("person static kotlin filed=%s \n",javaStaticName2);
+    jfieldID jd12 = env->GetStaticFieldID(jp12, "staticNameKt", "Ljava/lang/String;");
+    jstring js12 = (jstring) env->GetStaticObjectField(jp12, jd12);
+    const char *javaStaticName2 = env->GetStringUTFChars(js12, NULL);
+    LOGD("person static kotlin filed=%s \n", javaStaticName2);
 
 
     LOGD("####################  \n");
@@ -154,16 +152,16 @@ Java_cn_gd_snm_basejnipro_MainActivity_sendObjectDataToJni(JNIEnv *env,
 
     //TODO: 测试调用对象带参数的public方法
     jclass jp2 = env->GetObjectClass(person);
-    jmethodID j_pub_fun = env->GetMethodID(jp2,"pubFun", "(ILjava/lang/String;)I");
+    jmethodID j_pub_fun = env->GetMethodID(jp2, "pubFun", "(ILjava/lang/String;)I");
     jstring jst = env->NewStringUTF("jni 发送数据到java...");
-    jint result = env->CallIntMethod(person, j_pub_fun, 100,jst);
+    jint result = env->CallIntMethod(person, j_pub_fun, 100, jst);
     LOGD("jni层接受pub方法的返回值为 result=%d \n", result);
 
     LOGD("####################  \n");
 
     //TODO: 测试调用对象的private方法 -- 可以正常调用私有方法并传递值。
     jclass jp3 = env->GetObjectClass(person);
-    jmethodID j_pri_fun = env->GetMethodID(jp3,"priFun","(I)V");
+    jmethodID j_pri_fun = env->GetMethodID(jp3, "priFun", "(I)V");
     env->CallVoidMethod(person, j_pri_fun, 100);
 
     LOGD("####################  \n");
@@ -171,8 +169,8 @@ Java_cn_gd_snm_basejnipro_MainActivity_sendObjectDataToJni(JNIEnv *env,
 
     //TODO: 测试调用对象的java静态方法
     jclass jp4 = env->GetObjectClass(person);
-    jmethodID jd4 = env->GetStaticMethodID(jp4,"staticFunAboutJava", "()V");
-    env->CallStaticVoidMethod(jp4,jd4);
+    jmethodID jd4 = env->GetStaticMethodID(jp4, "staticFunAboutJava", "()V");
+    env->CallStaticVoidMethod(jp4, jd4);
 //
     LOGD("####################  \n");
 
@@ -192,41 +190,42 @@ Java_cn_gd_snm_basejnipro_MainActivity_sendObjectDataToJni(JNIEnv *env,
     jclass jp9 = env->GetObjectClass(person);
     jclass jp10 = env->FindClass("cn/gd/snm/basejnipro/Person$Companion");
 
-    jfieldID jf9 = env->GetStaticFieldID(jp9,"Companion", "Lcn/gd/snm/basejnipro/Person$Companion;");
+    jfieldID jf9 = env->GetStaticFieldID(jp9, "Companion",
+                                         "Lcn/gd/snm/basejnipro/Person$Companion;");
     jobject jo9 = env->GetStaticObjectField(jp9, jf9);
-    jmethodID jd9 = env->GetMethodID(jp10,"staticFunAboutKt", "()V");
-    env->CallVoidMethod(jo9,jd9);
+    jmethodID jd9 = env->GetMethodID(jp10, "staticFunAboutKt", "()V");
+    env->CallVoidMethod(jo9, jd9);
 
 
     //TODO: 测试在jni层创建Person对象，并调用Person构造，回调object传递对象。
     jclass jc5 = env->FindClass("cn/gd/snm/basejnipro/Person");
-    
+
     //实例化对象，不会调用构造
     jobject jo = env->AllocObject(jc5);
-    jfieldID jf6 = env->GetFieldID(jc5,"name","Ljava/lang/String;");
+    jfieldID jf6 = env->GetFieldID(jc5, "name", "Ljava/lang/String;");
     jstring js6 = env->NewStringUTF("set jni Str");
-    env->SetObjectField(jo,jf6,js6);    //设置下值
-    jmethodID jm6 = env->GetMethodID(jc5,"printf", "()V");
-    env->CallVoidMethod(jo,jm6);    //调用输出下刚才设置的值
+    env->SetObjectField(jo, jf6, js6);    //设置下值
+    jmethodID jm6 = env->GetMethodID(jc5, "printf", "()V");
+    env->CallVoidMethod(jo, jm6);    //调用输出下刚才设置的值
 
     //TODO: 调用构造 -- 默认构造
     jclass jcc1 = env->FindClass("cn/gd/snm/basejnipro/Person");
-    jmethodID jmm1 = env->GetMethodID(jcc1,"<init>","()V");
-    jobject joo1 = env->NewObject(jcc1,jmm1);
-    jfieldID jff1 = env->GetFieldID(jcc1,"name", "Ljava/lang/String;");
-    jstring jss1 = (jstring) env->GetObjectField(joo1,jff1);
-    const char* cha = env->GetStringUTFChars(jss1,NULL);
-    LOGD("调用默认构造生成对象，name = %s",cha);
+    jmethodID jmm1 = env->GetMethodID(jcc1, "<init>", "()V");
+    jobject joo1 = env->NewObject(jcc1, jmm1);
+    jfieldID jff1 = env->GetFieldID(jcc1, "name", "Ljava/lang/String;");
+    jstring jss1 = (jstring) env->GetObjectField(joo1, jff1);
+    const char *cha = env->GetStringUTFChars(jss1, NULL);
+    LOGD("调用默认构造生成对象，name = %s", cha);
 
     //TODO: 调用构造 -- 其他构造
     jclass jcc2 = env->FindClass("cn/gd/snm/basejnipro/Person");
-    jmethodID jmm2 = env->GetMethodID(jcc2,"<init>","(Ljava/lang/String;)V");
+    jmethodID jmm2 = env->GetMethodID(jcc2, "<init>", "(Ljava/lang/String;)V");
     jstring jst22 = env->NewStringUTF("jni name..");
-    jobject joo2 = env->NewObject(jcc2,jmm2,jst22);
-    jfieldID jff2 = env->GetFieldID(jcc2,"name", "Ljava/lang/String;");
-    jstring jss2 = (jstring) env->GetObjectField(joo2,jff2);
-    const char* cha2 = env->GetStringUTFChars(jss2,NULL);
-    LOGD("调用带参数构造生成对象，name = %s",cha2);
+    jobject joo2 = env->NewObject(jcc2, jmm2, jst22);
+    jfieldID jff2 = env->GetFieldID(jcc2, "name", "Ljava/lang/String;");
+    jstring jss2 = (jstring) env->GetObjectField(joo2, jff2);
+    const char *cha2 = env->GetStringUTFChars(jss2, NULL);
+    LOGD("调用带参数构造生成对象，name = %s", cha2);
 
     //TODO:正常情况下，局部引用的j对象并不需要手动释放，但最好也手动调用实现。
     env->DeleteLocalRef(joo2);
@@ -241,6 +240,7 @@ Java_cn_gd_snm_basejnipro_MainActivity_sendObjectDataToJni(JNIEnv *env,
  *
  */
 extern int age;
+
 extern void printf_name();
 
 //todo 全局对象，需要调用NewGlobalRef才是真正的全局。
@@ -264,12 +264,12 @@ Java_cn_gd_snm_basejnipro_MainActivity_testJniOther(JNIEnv *env,
     env->DeleteGlobalRef(j_global_obj);
 
     //todo 使用C的方式编写业务逻辑代码在.c中并输出。
-    LOGD("输出C文件中的age=%d \n" ,age);
+    LOGD("输出C文件中的age=%d \n", age);
     printf_name();
 
     //todo 使用C++的方式编写业务逻辑代码并输出。
     CPlusDemo cPlusDemo;
-    LOGD("输出C++文件中的age=%d \n" ,cPlusDemo.age);
+    LOGD("输出C++文件中的age=%d \n", cPlusDemo.age);
     cPlusDemo.printf_name();
 }
 
@@ -278,6 +278,84 @@ Java_cn_gd_snm_basejnipro_MainActivity_testJniOther(JNIEnv *env,
 extern "C"
 JNIEXPORT void JNICALL
 Java_cn_gd_snm_basejnipro_MainActivity_printfFFmpegVersonFromJni(JNIEnv *env, jobject thiz) {
-    unsigned  int verson = avutil_version();
-    LOGD("printfFFmpegVersonFromJni ver=%d \n",  verson);
+    unsigned int verson = avutil_version();
+    LOGD("printfFFmpegVersonFromJni ver=%d \n", verson);
 }
+
+
+//todo ################  以下测试动态注册  ##################
+
+/**
+ *  动态注册总体分为两步：
+ *      1. 实现与java层调用的jni函数。
+ *      2. 编写java层到jni层的函数映射表。
+ *      3. 在JNI_Onload中将该映射表进行注册。
+ *
+ *  实际动态注册和静态注册差不多，但效率会更
+ *
+ */
+
+void testDynamicFunJni(JNIEnv *env, jobject thiz, jint age, jstring name);
+
+/**
+ * JNI映射表数组
+ *
+ */
+static const JNINativeMethod jniNativeMethod[] = {
+        {"testDynamicFun", "(ILjava/lang/String;)V", (void *) (testDynamicFunJni)}
+};
+
+/**
+ * 与java对应的jni函数，这里必须要添加两个默认参数，如果是非静态则是jobject，如果是静态则是jclass。
+ *
+ */
+void testDynamicFunJni(JNIEnv *env, jobject thiz, jint age, jstring name) {
+    LOGD("testDynamicFun...");
+    const char* jname = env->GetStringUTFChars(name, nullptr);
+    LOGD("testDynamicFun,age=%d , name=%s",age,jname);
+}
+
+/**
+ *  jni层加载该jni文件时，会先调用该函数，该函数默认存在，这里相当于重写。
+ *
+ */
+extern "C"
+JNIEXPORT jint JNI_OnLoad(JavaVM *javaVm, void *) {
+    LOGD("GetEnv JNI_OnLoad...");
+
+    //todo 首先通过javaVm获取env上下文
+    JNIEnv *jniEnv = nullptr;
+    //注意，参数是二级指针，所以需要取址一级指针
+
+    int ret = javaVm->GetEnv(reinterpret_cast<void **>(&jniEnv), JNI_VERSION_1_6);
+
+    if (0 != ret) {
+        LOGE("GetEnv 获取失败！");
+        return -1;  //返回-1，程序会运行崩溃。
+    }
+
+    LOGD("GetEnv 获取成功...");
+
+    /**
+     * 参数有三个：
+     *  1. java层映射的jclass。
+     *  2. jni层的映射表。
+     *  3. 映射表中方法的个数。
+     *
+     */
+    const char* javaClassName = "cn/gd/snm/basejnipro/DanActivity";
+    int methodsSize = sizeof(jniNativeMethod) /sizeof (JNINativeMethod);
+    jclass javaClaz = jniEnv->FindClass(javaClassName);
+    jniEnv->RegisterNatives(javaClaz,jniNativeMethod,methodsSize);
+
+    LOGD("GetEnv java层方法注册完毕...");
+
+    return JNI_VERSION_1_6; //貌似java1.6会比较稳定。
+}
+
+
+
+
+
+
+
