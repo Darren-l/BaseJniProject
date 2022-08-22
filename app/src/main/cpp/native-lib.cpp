@@ -315,6 +315,8 @@ void testDynamicFunJni(JNIEnv *env, jobject thiz, jint age, jstring name) {
     LOGD("testDynamicFun,age=%d , name=%s",age,jname);
 }
 
+JavaVM* jvm = nullptr;
+
 /**
  *  jni层加载该jni文件时，会先调用该函数，该函数默认存在，这里相当于重写。
  *
@@ -322,6 +324,10 @@ void testDynamicFunJni(JNIEnv *env, jobject thiz, jint age, jstring name) {
 extern "C"
 JNIEXPORT jint JNI_OnLoad(JavaVM *javaVm, void *) {
     LOGD("GetEnv JNI_OnLoad...");
+
+    //将jvm存储到全局
+    jvm = javaVm;
+
 
     //todo 首先通过javaVm获取env上下文
     JNIEnv *jniEnv = nullptr;
@@ -352,6 +358,186 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *javaVm, void *) {
 
     return JNI_VERSION_1_6; //貌似java1.6会比较稳定。
 }
+
+
+
+//todo ##################### 下面测试jni层开辟线程及evn和thiz的传递  ###############
+
+
+#include <pthread.h>
+#include <unistd.h>
+
+// 抽象java层对应的对象相关引用
+class ThreadActivityJni{
+public:
+    JNIEnv* env = nullptr;
+    jobject actObj = NULL;
+};
+
+
+//void* (*__start_routine)(void*)
+void * receiveCb(void *pVoid){
+    LOGD("开启线程... callback...");
+
+    char *name = (char*) pVoid;
+    LOGD("开启线程... name = %s \n" , name);
+
+    return nullptr;
+}
+
+/**
+ * //todo 注意！！传递的对象不能是env，否则调用env函数会报错
+ *
+ * env不能跨线程传递，必须绑定当前线程使用。
+ *
+ * @param env
+ * @return
+ */
+void* receiveObjCb(void* env){
+    LOGD("开启线程... callback... \n");
+
+    //todo ##### 错误演示，跨线程传递env并使用。
+//    LOGD("开启线程... callback... envp= %p \n",env);    //有地址。
+//    JNIEnv* t_env = (JNIEnv *) env;
+//    LOGD("cast end... \n");
+//    if(t_env == nullptr){
+//        LOGE("线程中获取的env对象为空...\n");
+//        return nullptr;
+//    }
+//    //尝试调用env
+//    jclass jc = t_env->FindClass("cn/gd/snm/basejnipro/ThreadActivity");
+//    //todo  此时报错
+//    jfieldID jd12 = t_env->GetStaticFieldID(jc, "staticAge", "I");
+//    jint js12 = (jint) t_env->GetStaticIntField(jc, jd12);
+//    LOGD("尝试使用传递的env获取类，并获取类的静态成员...js12 = %d \n" , js12);
+
+
+    //todo #### env在线程中的正确获取方式
+    JNIEnv* th_env = nullptr;
+    jint result = jvm->AttachCurrentThread(&th_env, nullptr);
+    if(result != JNI_OK){
+        LOGE("绑定失败！ \n");
+        return nullptr;
+    }
+
+    return nullptr;
+}
+
+
+/**
+ *
+ * //todo thiz可以传递，但传递前必须使用NewGloble申明为全局。
+ *
+ *  通常在源码中，都会申明jni层类或结构体对应java中的实体。子线程绑定出来的env不具备完成的接口功能，如FindClass获取的
+ *  就会为空。
+ *
+ *  另外C语言中的线程的参数只有一个，如果要向线程回调函数传递多个参数，需要自行使用类或者结构体进行封装。
+ *
+ *
+ * @param obj
+ * @return
+ */
+void* receiveObjCb2(void* obj){
+    LOGD("开启线程... receiveObjCb2... \n");
+
+    ThreadActivityJni* threadActivityJni = (ThreadActivityJni*) obj;
+
+    JNIEnv* env;
+
+    //todo 申明一个env绑定当前线程。
+    jint result = jvm->AttachCurrentThread(&env, nullptr);
+    if(result != JNI_OK){
+        LOGE("新线程的env绑定失败！ \n");
+        return nullptr;
+    }
+
+    //不可以使用其他线程的evn，在具体获取对象或执行函数时，会报错。
+//    env = threadActivityJni->env;
+
+    //调用actObj对象的方法。
+    jclass j_act_class = env->GetObjectClass(threadActivityJni->actObj);
+    jmethodID j_act_printf_id = env->GetMethodID(j_act_class,"testPrintf","()V");
+    env->CallVoidMethod(threadActivityJni->actObj,j_act_printf_id); //可以正常调用。
+
+    //todo 尝试使用env直接获取class，获取为空。子线程的evn不允许这么操作。
+    // 可以考虑放到主线程做，然后变全局或者放参数传递过来。
+    jclass jc = env->FindClass("cn/gd/snm/basejnipro/ThreadActivity");
+    if(jc == nullptr){
+        LOGE("获取的jc为空！ \n");    //会走这里。
+        return nullptr;
+    }
+
+    jvm->DetachCurrentThread();
+
+    return nullptr;
+}
+
+
+/**
+ * JavaVM在jni的进程中全局唯一，绑定当前进程，可以跨线程。
+ *
+ * JNIEnv绑定的是当前线程，切换线程后失效，不可以当做线程开启参数跨线程传递给其他线程。
+ *
+ * jobject可以作为参数传递给其他线程，但需要将jobject定义为全局然后再传递。
+ *
+ *
+ */
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_gd_snm_basejnipro_ThreadActivity_createThreadInJni(JNIEnv *env, jobject thiz,
+                                                           jstring name) {
+    LOGD("createThreadInJni...");
+    const char* c_name = env->GetStringUTFChars(name, nullptr);
+
+    //使用pthead开启线程
+    pthread_t pid;
+
+    //todo #### 测试传递基础数据类型。
+//    pthread_create(&pid, nullptr,receiveCb,(void *)c_name);
+
+
+    //todo #### 测试传递env，thiz
+//    pthread_create(&pid, nullptr,receiveObjCb,(void*) env);
+
+    //todo #### 测试传递thiz
+    ThreadActivityJni* threadActivityJni = new ThreadActivityJni;
+    threadActivityJni->env = env;
+    //跨线程必须要申明全局
+    threadActivityJni->actObj = env->NewGlobalRef(thiz);
+    pthread_create(&pid, nullptr,receiveObjCb2,threadActivityJni);
+
+    //等待子线程执行。
+    pthread_join(pid, nullptr);
+    LOGD("open thread end...");
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
