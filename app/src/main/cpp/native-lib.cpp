@@ -513,35 +513,112 @@ Java_cn_gd_snm_basejnipro_ThreadActivity_createThreadInJni(JNIEnv *env, jobject 
 }
 
 
+//todo ################ java层和jni层映射缓存filed变量 ###########
+
+//与java层对应的jni层的静态变量
+static jfieldID j_cache_name1;
+static jfieldID j_cache_name2;
+
+/**
+ * 测试jfieldID与java层的绑定关系。
+ *
+ * 结论：java层修改值后，jfieldID对应也会修改，也就是说jfieldID实际上就是个java层对象的索引。
+ *
+ * 如果java层有个对象反复用到，可以考虑将其jfieldID直接缓存在jni层，方便访问也节约性能。
+ *
+ */
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_gd_snm_basejnipro_ThreadActivity_cacheJni(JNIEnv *env, jobject thiz, jstring cache_name1,
+                                                  jstring cache_name2) {
+    LOGD("cacheJni... \n");
+    //测试java修改变量后，重新获取值，查看fieldId是否存在映射关系。
+    jclass jcl = env->GetObjectClass(thiz);
+    jstring name1 = (jstring) env->GetStaticObjectField(jcl,j_cache_name1);
+    jstring name2 = (jstring) env->GetStaticObjectField(jcl,j_cache_name2);
+
+    char* c_name = (char*) env->GetStringUTFChars(name1, nullptr);
+    char* c_name2 = (char*) env->GetStringUTFChars(name2, nullptr);
+
+    LOGD("cacheJni name1=%s, name2=%s \n", c_name,c_name2);
+}
+
+/**
+ * 将java层的静态对象的id缓存到jni层静态。
+ *
+ */
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_gd_snm_basejnipro_ThreadActivity_initJniCache(JNIEnv *env, jclass clazz,
+                                                      jstring cache_name1, jstring cache_name2) {
+    LOGD("initJniCache... \n");
+    const char* name1 = env->GetStringUTFChars(cache_name1, nullptr);
+    const char* name2 = env->GetStringUTFChars(cache_name1, nullptr);
+    j_cache_name1 = env->GetStaticFieldID(clazz,name1, "Ljava/lang/String;");
+    j_cache_name2 = env->GetStaticFieldID(clazz,name2, "Ljava/lang/String;");
+}
 
 
+//todo ####################  测试java与jni层异常的相互捕获及处理  #########################
 
+/**
+ * Jni层的异常特点：
+ *  1. 一定会等走完这个函数才会抛出异常。
+ *  2. 可以在jni层自行进行捕获消除异常。
+ *  3. 也可以对java层抛出异常。
+ *  4. 也可以捕获java层抛出来的异常，实际上就是第二点。
+ *
+ * 注意：Jni层的异常若是属于C层的错误，那么该错误无法捕获。简单来说，通常能捕获的异常都是手动抛出的异常和evn接口的异常。
+ *
+ *
+ * Jni层 env异常及捕获特点：
+ *
+ *  1. 一个ExceptionClear只能清除一个异常，若在clear前出现了两个异常，程序还是会崩溃。
+ *  2. 若单纯出现一个异常，jni函数仍然会走完，但会crash。如果出现一个异常后又出现一个新的异常，则程序直接崩溃。
+ *  3. 不能捕获C的异常，只能捕获env也就是java层的异常，这个和C++的异常捕获类似。
+ *
+ */
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_gd_snm_basejnipro_ThreadActivity_exceptionJni(JNIEnv *env, jobject thiz) {
+    LOGD("exceptionJni... \n");
+    jclass jc_thiz = env->GetObjectClass(thiz);
 
+    //todo #### 测试jni层出错，自行捕获。
+//    env->GetStaticFieldID(jc_thiz,"DEMOFI","I");
+//    jthrowable jt = env->ExceptionOccurred();
+//    if(jt){
+//        LOGE("jt is not null, show exception! \n");
+//        //清除异常
+//        env->ExceptionClear();
+//        //若不清除异常，直接返回，还是会报错。
+////        return;
+//    }
 
+    //todo #### 测试jni层C层出错，异常是否能捕获测试。
+    // 结论：不能捕获C的异常，C出现异常后直接报错，程序不会继续向下。
+//    int* a;
+//    int b = *a + 2; //制造野指针异常。
+//    jthrowable jt = env->ExceptionOccurred();   //尝试捕获并清理。
+//    if(jt){
+//        LOGE("jt is not null, show exception! \n");
+//        //清除异常
+//        env->ExceptionClear();
+//    }
 
+    //todo #### 测试jni层捕获java层接口抛出的异常。
+    // 结论：可以捕获，但是当前函数会调用多次？？。
+//    jmethodID jid = env->GetMethodID(jc_thiz,"testException","()V");
+//    env->CallVoidMethod(thiz,jid);
+//    jthrowable jt = env->ExceptionOccurred();
+//    if(jt){
+//        LOGE("java exception... \n");
+//        env->ExceptionClear();
+//    }
 
+    //todo #### 测试jni层向java层抛异常，java层捕获。
+    jclass clz = env->FindClass("java/lang/NoSuchFieldException");
+    env->ThrowNew(clz, "Exception from jni...");
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    LOGD("exceptionJni... end ... \n");
+}
