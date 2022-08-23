@@ -616,6 +616,12 @@ Java_cn_gd_snm_basejnipro_ThreadActivity_exceptionJni(JNIEnv *env, jobject thiz)
 //        env->ExceptionClear();
 //    }
 
+    //也可以是用check检查是否有异常。
+//    if (env->ExceptionCheck()) {
+//        env->ExceptionDescribe(); // 输出异常信息
+//        env->ExceptionClear();
+//    }
+
     //todo #### 测试jni层向java层抛异常，java层捕获。
     jclass clz = env->FindClass("java/lang/NoSuchFieldException");
     env->ThrowNew(clz, "Exception from jni...");
